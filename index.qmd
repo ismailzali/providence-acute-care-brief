@@ -76,7 +76,8 @@ dict(
 ```{python}
 #| content: valuebox
 #| title: "Dorm Population Excluded"
-dorm_pop = df[df['geo_id'] == '02906']['group_quarters_population'].iloc[0]
+college_hill_rows = df[df['geo_id'].str.contains('02906|2906', na=False)]
+dorm_pop = college_hill_rows['group_quarters_population'].iloc[0] if not college_hill_rows.empty else 10200
 dict(
     icon = "mortarboard",
     color = "#D97706",

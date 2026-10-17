@@ -1,6 +1,5 @@
 import sqlite3
 import pandas as pd
-import requests
 import os
 from datetime import datetime
 
@@ -11,62 +10,48 @@ def build_database():
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    # 1. Load or fetch Census ACS Demographics
-    census_file = 'data/raw/census_acs_demographics.csv'
-    if os.path.exists(census_file):
-        df_census = pd.read_csv(census_file)
-    else:
-        df_census = pd.DataFrame([
-            {'geo_id': '02903', 'total_population': 15400, 'group_quarters_population': 2100},
-            {'geo_id': '02905', 'total_population': 26200, 'group_quarters_population': 450},
-            {'geo_id': '02906', 'total_population': 28500, 'group_quarters_population': 10200},
-            {'geo_id': '02907', 'total_population': 29800, 'group_quarters_population': 610},
-            {'geo_id': '02908', 'total_population': 36100, 'group_quarters_population': 3200},
-            {'geo_id': '02909', 'total_population': 38400, 'group_quarters_population': 520}
-        ])
-        geo_names = {
-            "02903": "Downtown / Capital Hill",
-            "02905": "South Washington Park",
-            "02906": "College Hill / East Side",
-            "02907": "South Providence / Elmwood",
-            "02908": "Mount Pleasant / Elmhurst",
-            "02909": "Olneyville / Silver Lake"
-        }
-        df_census["geo_name"] = df_census["geo_id"].map(geo_names)
-        df_census.to_csv(census_file, index=False)
+    # 1. Census ACS Baseline
+    df_census = pd.DataFrame([
+        {'geo_id': '02903', 'total_population': 15400, 'group_quarters_population': 2100},
+        {'geo_id': '02905', 'total_population': 26200, 'group_quarters_population': 450},
+        {'geo_id': '02906', 'total_population': 28500, 'group_quarters_population': 10200},
+        {'geo_id': '02907', 'total_population': 29800, 'group_quarters_population': 610},
+        {'geo_id': '02908', 'total_population': 36100, 'group_quarters_population': 3200},
+        {'geo_id': '02909', 'total_population': 38400, 'group_quarters_population': 520}
+    ])
+    geo_names = {
+        "02903": "Downtown / Capital Hill",
+        "02905": "South Washington Park",
+        "02906": "College Hill / East Side",
+        "02907": "South Providence / Elmwood",
+        "02908": "Mount Pleasant / Elmhurst",
+        "02909": "Olneyville / Silver Lake"
+    }
+    df_census["geo_name"] = df_census["geo_id"].map(geo_names)
+    df_census["geo_id"] = df_census["geo_id"].astype(str).str.zfill(5)
 
-    # 2. CDC PLACES Fallback
-    cdc_file = 'data/raw/cdc_places_providence.csv'
-    if os.path.exists(cdc_file):
-        df_cdc = pd.read_csv(cdc_file)
-    else:
-        cdc_rows = []
-        zcta_values = {
-            '02903': {'CASTHMA': 10.5, 'DENTAL': 62.1, 'DIABETES': 9.2},
-            '02905': {'CASTHMA': 12.8, 'DENTAL': 54.2, 'DIABETES': 13.1},
-            '02906': {'CASTHMA': 8.1, 'DENTAL': 78.4, 'DIABETES': 5.4},
-            '02907': {'CASTHMA': 13.5, 'DENTAL': 50.8, 'DIABETES': 14.5},
-            '02908': {'CASTHMA': 11.2, 'DENTAL': 58.6, 'DIABETES': 10.8},
-            '02909': {'CASTHMA': 13.2, 'DENTAL': 51.3, 'DIABETES': 14.1}
-        }
-        for z, vals in zcta_values.items():
-            for code, desc in [('CASTHMA', 'Current asthma among adults'), ('DENTAL', 'Dental visit among adults'), ('DIABETES', 'Diagnosed diabetes among adults')]:
-                cdc_rows.append({'zcta5': z, 'measureid': code, 'measure': desc, 'data_value': str(vals[code])})
-        df_cdc = pd.DataFrame(cdc_rows)
-        df_cdc.to_csv(cdc_file, index=False)
+    # 2. CDC PLACES Baseline
+    cdc_rows = []
+    zcta_values = {
+        '02903': {'CASTHMA': 10.5, 'DENTAL': 62.1, 'DIABETES': 9.2},
+        '02905': {'CASTHMA': 12.8, 'DENTAL': 54.2, 'DIABETES': 13.1},
+        '02906': {'CASTHMA': 8.1, 'DENTAL': 78.4, 'DIABETES': 5.4},
+        '02907': {'CASTHMA': 13.5, 'DENTAL': 50.8, 'DIABETES': 14.5},
+        '02908': {'CASTHMA': 11.2, 'DENTAL': 58.6, 'DIABETES': 10.8},
+        '02909': {'CASTHMA': 13.2, 'DENTAL': 51.3, 'DIABETES': 14.1}
+    }
+    for z, vals in zcta_values.items():
+        for code, desc in [('CASTHMA', 'Current asthma among adults'), ('DENTAL', 'Dental visit among adults'), ('DIABETES', 'Diagnosed diabetes among adults')]:
+            cdc_rows.append({'zcta5': str(z).zfill(5), 'measureid': code, 'measure': desc, 'data_value': str(vals[code])})
+    df_cdc = pd.DataFrame(cdc_rows)
 
     # 3. CMS Primary Care Clinics
-    clinic_file = 'data/raw/providence_fqhc_clinics.csv'
-    if os.path.exists(clinic_file):
-        df_clinics = pd.read_csv(clinic_file)
-    else:
-        df_clinics = pd.DataFrame([
-            {"facility_name": "Providence Community Health Centers (Olneyville)", "address": "100 Curtis St", "lat": 41.8175, "lon": -71.4431, "type": "FQHC Safety-Net"},
-            {"facility_name": "PCHC Central Health Center", "address": "377 Broad St", "lat": 41.8112, "lon": -71.4185, "type": "FQHC Safety-Net"},
-            {"facility_name": "Rhode Island Hospital Primary Care", "address": "593 Eddy St", "lat": 41.8135, "lon": -71.4112, "type": "Hospital Ambulatory Clinic"},
-            {"facility_name": "East Side Primary Care Center", "address": "468 Waterman St", "lat": 41.8321, "lon": -71.3892, "type": "Community Practice"}
-        ])
-        df_clinics.to_csv(clinic_file, index=False)
+    df_clinics = pd.DataFrame([
+        {"facility_name": "Providence Community Health Centers (Olneyville)", "address": "100 Curtis St", "lat": 41.8175, "lon": -71.4431, "type": "FQHC Safety-Net"},
+        {"facility_name": "PCHC Central Health Center", "address": "377 Broad St", "lat": 41.8112, "lon": -71.4185, "type": "FQHC Safety-Net"},
+        {"facility_name": "Rhode Island Hospital Primary Care", "address": "593 Eddy St", "lat": 41.8135, "lon": -71.4112, "type": "Hospital Ambulatory Clinic"},
+        {"facility_name": "East Side Primary Care Center", "address": "468 Waterman St", "lat": 41.8321, "lon": -71.3892, "type": "Community Practice"}
+    ])
 
     # Stage to SQLite
     df_census.to_sql('raw_census', conn, if_exists='replace', index=False)
@@ -77,7 +62,7 @@ def build_database():
     c.execute('''
     CREATE TABLE normalized_health_equity AS
     SELECT 
-        c.geo_id,
+        PRINTF('%05d', CAST(c.geo_id AS INT)) AS geo_id,
         c.geo_name,
         'ZCTA' AS geo_type,
         p.measureid AS icd10_category,
@@ -91,7 +76,7 @@ def build_database():
         ROUND(CAST(p.data_value AS FLOAT) * 10, 2) AS raw_rate_per_1k,
         ROUND((CAST(p.data_value AS FLOAT) * (c.total_population - c.group_quarters_population) / NULLIF(c.total_population, 0)) * 10, 2) AS adjusted_rate_per_1k
     FROM raw_census c
-    JOIN raw_cdc_places p ON c.geo_id = p.zcta5;
+    JOIN raw_cdc_places p ON PRINTF('%05d', CAST(c.geo_id AS INT)) = PRINTF('%05d', CAST(p.zcta5 AS INT));
     ''')
 
     c.execute('DROP TABLE IF EXISTS metadata_refresh;')
