@@ -1,0 +1,26 @@
+/* Ocean State Healthcare Theme - Providence Acute Care Brief */
+$theme-primary: #0A2540;   /* Deep Navy */
+$theme-secondary: #007A87; /* Ocean Teal */
+$theme-accent: #D97706;    /* Amber Gold */
+$body-bg: #F8FAFC;
+$font-family-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+
+.navbar {
+  background-color: $theme-primary !important;
+  border-bottom: 3px solid $theme-secondary;
+}
+
+.card {
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.valuebox {
+  border-left: 4px solid $theme-secondary !important;
+}
+
+h1, h2, h3, h4 {
+  color: $theme-primary;
+  font-weight: 700;
+}
