@@ -1,3 +1,4 @@
+/*-- scss:defaults --*/
 /* Ocean State Healthcare Theme - Providence Acute Care Brief */
 $theme-primary: #0A2540;   /* Deep Navy */
 $theme-secondary: #007A87; /* Ocean Teal */
@@ -5,6 +6,7 @@ $theme-accent: #D97706;    /* Amber Gold */
 $body-bg: #F8FAFC;
 $font-family-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
 
+/*-- scss:rules --*/
 .navbar {
   background-color: $theme-primary !important;
   border-bottom: 3px solid $theme-secondary;
