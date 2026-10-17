@@ -25,7 +25,11 @@ jobs:
       - name: Install Python & Jupyter Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install jupyter pyyaml pandas plotly duckdb
+          pip install jupyter pyyaml pandas plotly duckdb requests
+
+      - name: Build SQLite Database Snapshot
+        run: |
+          python src/transform.py
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
