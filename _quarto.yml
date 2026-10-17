@@ -1,0 +1,18 @@
+project:
+  type: dashboard
+  output-dir: _site
+
+format:
+  dashboard:
+    theme: [cosmo, styles/custom.scss]
+    nav-buttons:
+      - icon: github
+        href: https://github.com/ismailzali/providence-acute-care-brief
+        aria-label: GitHub Repository
+    scrolling: true
+
+website:
+  title: "Providence Acute Care & Health Equity Brief"
+  # Analytics Hooks (placeholders):
+  # google-analytics: "G-XXXXXXXXXX"
+  # plausible: "ismailzali.github.io"
