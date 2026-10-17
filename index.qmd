@@ -17,7 +17,7 @@ import plotly.io as pio
 
 pio.templates.default = "plotly_white"
 
-# Connect to persistent local SQLite store
+# Connect to persistent SQLite database
 conn = sqlite3.connect("data/processed/providence_health_equity.db")
 
 df = pd.read_sql("""
@@ -29,6 +29,20 @@ df = pd.read_sql("""
     FROM normalized_health_equity
 """, conn)
 conn.close()
+
+# Coordinate mapping for Providence ZCTAs
+coords = {
+    "02903": (41.825, -71.415),
+    "02905": "41.792, -71.398",
+    "02905": (41.792, -71.398),
+    "02906": (41.838, -71.396),
+    "02907": (41.798, -71.428),
+    "02908": (41.842, -71.442),
+    "02909": (41.818, -71.448)
+}
+
+df['lat'] = df['geo_id'].map(lambda x: coords.get(x, (41.82, -71.41))[0])
+df['lon'] = df['geo_id'].map(lambda x: coords.get(x, (41.82, -71.41))[1])
 ```
 
 # Executive Brief
@@ -101,17 +115,31 @@ fig
 
 ```{python}
 #| title: "Providence Health Equity Zone & Primary Care Access Overview"
-fig_map = px.scatter_mapbox(
-    df,
-    lat=[41.815, 41.808, 41.831, 41.818, 41.825, 41.812],
-    lon=[-71.436, -71.412, -71.401, -71.425, -71.442, -71.418],
-    size="prevalence_pct",
-    color="geo_name",
-    hover_name="geo_name",
-    zoom=12,
-    mapbox_style="carto-positron",
-    color_discrete_sequence=["#0A2540", "#007A87", "#D97706", "#2563EB", "#059669", "#D97706"]
-)
+df_map_agg = df.groupby(['geo_id', 'geo_name', 'lat', 'lon'], as_index=False)['prevalence_pct'].mean()
+
+try:
+    fig_map = px.scatter_map(
+        df_map_agg,
+        lat="lat",
+        lon="lon",
+        size="prevalence_pct",
+        color="geo_name",
+        hover_name="geo_name",
+        zoom=11,
+        map_style="open-street-map",
+        color_discrete_sequence=["#0A2540", "#007A87", "#D97706", "#2563EB", "#059669", "#D97706"]
+    )
+except AttributeError:
+    fig_map = px.scatter(
+        df_map_agg,
+        x="lon",
+        y="lat",
+        size="prevalence_pct",
+        color="geo_name",
+        hover_name="geo_name",
+        color_discrete_sequence=["#0A2540", "#007A87", "#D97706", "#2563EB", "#059669", "#D97706"]
+    )
+
 fig_map.update_layout(margin=dict(l=0, r=0, t=0, b=0))
 fig_map
 ```

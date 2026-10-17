@@ -25,7 +25,7 @@ jobs:
       - name: Install Python & Jupyter Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install jupyter pyyaml pandas plotly duckdb requests
+          pip install jupyter pyyaml "pandas<3.0.0" "plotly>=5.18.0,<6.0.0" duckdb requests
 
       - name: Build SQLite Database Snapshot
         run: |
