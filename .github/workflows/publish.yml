@@ -22,12 +22,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Python Dependencies
+      - name: Install Dependencies
         run: |
           pip install pandas plotly duckdb
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: '1.4.551'
 
       - name: Render Quarto Dashboard
         run: |
