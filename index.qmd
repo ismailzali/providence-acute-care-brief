@@ -1,0 +1,132 @@
+---
+title: "Providence Acute Care & Health Equity Brief"
+author: "Ismail Ali"
+format: dashboard
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+import sqlite3
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+
+pio.templates.default = "plotly_white"
+
+# Connect to persistent local SQLite store
+conn = sqlite3.connect("data/processed/providence_health_equity.db")
+
+df = pd.read_sql("""
+    SELECT 
+        geo_id, geo_name, geo_type, icd10_category, visit_count, total_charges,
+        total_population, group_quarters_population, community_population,
+        raw_rate_per_1k, adjusted_rate_per_1k
+    FROM normalized_health_equity
+""", conn)
+conn.close()
+```
+
+# Executive Brief
+
+## Row {height=20%}
+
+```{python}
+#| content: valuebox
+#| title: "Olneyville HEZ Rate"
+high_rate = df[df['geo_name'] == 'Olneyville HEZ']['adjusted_rate_per_1k'].mean()
+dict(
+    icon = "hospital",
+    color = "#007A87",
+    value = f"{high_rate:.1f} / 1k"
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "College Hill (Non-Student Adjusted)"
+college_hill_adj = df[df['geo_name'] == 'College Hill / East Side']['adjusted_rate_per_1k'].mean()
+dict(
+    icon = "person-badge",
+    color = "#0A2540",
+    value = f"{college_hill_adj:.1f} / 1k"
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Dorm Population Excluded"
+dorm_pop = df[df['geo_name'] == 'College Hill / East Side']['group_quarters_population'].iloc[0]
+dict(
+    icon = "mortarboard",
+    color = "#D97706",
+    value = f"{dorm_pop:,} residents"
+)
+```
+
+## Row {height=80%}
+
+### Column {width=60%}
+
+```{python}
+#| title: "Preventable ED Visit Rate per 1,000 Residents Across Health Equity Zones"
+df_hez = df[df['geo_type'] == 'HEZ'].groupby(['geo_name', 'icd10_category'])['adjusted_rate_per_1k'].mean().reset_index()
+
+fig = px.bar(
+    df_hez,
+    x="geo_name",
+    y="adjusted_rate_per_1k",
+    color="icd10_category",
+    labels={"adjusted_rate_per_1k": "Visits per 1,000 Residents", "geo_name": "Health Equity Zone"},
+    color_discrete_sequence=["#0A2540", "#007A87", "#D97706", "#64748B"]
+)
+fig.update_layout(margin=dict(l=20, r=20, t=20, b=20))
+fig
+```
+
+### Column {width=40%}
+
+::: {.card title="Key Policy Insights"}
+* **Safety-Net Overcrowding:** High-frequency emergency department visits for low-acuity conditions (primary dental pain, uncontrolled asthma) remain concentrated in urban safety-net corridors (`02907` South Providence and `02909` Olneyville).
+* **Student Denominator Distortion:** In `02906` (College Hill/East Side), including 10,200 university dorm residents in the Census denominator artificially suppresses the apparent rate by **35.7%** (from 10.38/1k down to 6.67/1k for respiratory care). Adjusting for group-quarters residents exposes underlying non-student health trends.
+* **Care Routing Recommendation:** Directing Medicaid ACO intervention funds toward primary care walk-in capacity and community health worker deployment in Olneyville provides the highest return on emergency room diversion.
+:::
+
+# Spatial Access & Neighborhoods
+
+## Row
+
+```{python}
+#| title: "Providence Health Equity Zone & Primary Care Access Map"
+fig_map = px.scatter_mapbox(
+    df,
+    lat=[41.815, 41.808, 41.831, 41.818, 41.825, 41.812],
+    lon=[-71.436, -71.412, -71.401, -71.425, -71.442, -71.418],
+    size="adjusted_rate_per_1k",
+    color="geo_name",
+    hover_name="geo_name",
+    zoom=12,
+    mapbox_style="carto-positron",
+    color_discrete_sequence=["#0A2540", "#007A87", "#D97706", "#2563EB", "#059669", "#D97706"]
+)
+fig_map.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+fig_map
+```
+
+# Methodology & Data Lineage
+
+## Row
+
+::: {.card title="Data Sources & Methodological Perimeter"}
+### Data Lineage
+* **RIDOH Hospital Discharge Program:** [State Emergency Department Summaries](https://health.ri.gov/data/hospital-discharge-data)
+* **US Census ACS 5-Year Estimates:** [ZCTA Demographics & Group Quarters](https://data.census.gov/)
+* **CMS NPPES Registry:** [Geocoded Providence FQHC Directory](https://npiregistry.cms.hhs.gov/)
+
+### Methodological Perimeter
+1. **Group-Quarters Student Normalization:** Calculated as $Pop_{community} = Pop_{total} - Pop_{group\_quarters}$ to isolate permanent non-student community baselines.
+2. **Dataset Boundaries:** Captures **hospital-based acute care visits only**. Independent urgent care walk-in clinics, campus student health centers (e.g., Brown University Health Services), and out-of-state hospital visits are excluded.
+:::
